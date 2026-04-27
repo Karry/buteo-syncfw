@@ -107,6 +107,7 @@ bool BackgroundSync::set(const QString &aProfName, int seconds)
                                        << "with frequency" << (seconds / 60) << "minutes, waiting.";
                 return true;
             } else {
+                newAct.backgroundActivity->stop();
                 newAct.backgroundActivity->wait();
                 qCDebug(lcButeoMsyncd) << "BackgroundSync::set() Frequency unchanged for" << aProfName << ", waiting.";
                 return true; //returning 'true' - no immediate sync request to be sent.
