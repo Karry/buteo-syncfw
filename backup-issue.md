@@ -31,3 +31,15 @@ systemctl restart --user msyncd
 
 [possible cause analysis](backup-issue-analysis-step01.md)
 
+### Step 2: journal log evidence (2026-05-05)
+
+    Disclaimer: following analysis was done by the **Claude Opus 4.6** model
+
+Manually triggered backup at 23:38, scheduled automatic backup at 00:16 did not execute.
+
+[journal log analysis](backup-issue-analysis-step02.md)
+
+**Key finding:** Bug 2 (±5 min validation window) is the **direct cause** — the timer fired
+at 00:32 (16 min late) and was rejected. Bug 1 (missing `stop()`) is a **contributing factor**
+that prevented the timer from being properly reset after the manual backup completed.
+
