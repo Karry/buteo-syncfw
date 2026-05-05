@@ -507,11 +507,12 @@ bool SyncSchedule::isSyncScheduled(const QDateTime &aActualDateTime, const QDate
             return false;
         }
 
-        /* Keep a 10 minutes margin to ensure that delayed
-           syncs by more prioritary sync in progress are still
+        /* Keep a 2 hours margin to ensure that delayed
+           syncs by more prioritary sync in progress or
+           imprecise BackgroundActivity frequency wakeups are still
            considered as valid sync times. */
-        return (aActualDateTime.time() < d_ptr->iTime.addSecs(5 * 60)
-                && aActualDateTime.time() > d_ptr->iTime.addSecs(-5 * 60));
+        return (aActualDateTime.time() < d_ptr->iTime.addSecs(60 * 60)
+                && aActualDateTime.time() > d_ptr->iTime.addSecs(-60 * 60));
     }
 
     // If sync schedule is defined by rush, check that rush is enabled for aActualDateTime
