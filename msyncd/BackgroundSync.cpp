@@ -89,50 +89,24 @@ bool BackgroundSync::set(const QString &aProfName, int seconds)
         return false;
 
     if (iScheduledSyncs.contains(aProfName) == true) {
-        // Can't schedule sync for such long interval removing existent profile if it exists,
-        // new background activity will be added below
-        if ((seconds / 60 >  MAX_FREQUENCY)) {
-            remove(aProfName);
-        } else {
-
-            BActivityStruct &newAct = iScheduledSyncs[aProfName];
-            BackgroundActivity::Frequency frequency = frequencyFromSeconds(seconds);
-
-            if (newAct.frequency != frequency) {
-                newAct.backgroundActivity->stop();
-                newAct.frequency = frequency;
-                newAct.backgroundActivity->setWakeupFrequency(newAct.frequency);
-                newAct.backgroundActivity->wait();
-                qCDebug(lcButeoMsyncd) << "BackgroundSync::set() Rescheduling for" << aProfName
-                                       << "with frequency" << (seconds / 60) << "minutes, waiting.";
-                return true;
-            } else {
-                newAct.backgroundActivity->stop();
-                newAct.backgroundActivity->wait();
-                qCDebug(lcButeoMsyncd) << "BackgroundSync::set() Frequency unchanged for" << aProfName << ", waiting.";
-                return true; //returning 'true' - no immediate sync request to be sent.
-            }
-        }
+        BActivityStruct &newAct = iScheduledSyncs[aProfName];
+        newAct.backgroundActivity->stop();
+        newAct.frequency = BackgroundActivity::Range; // one-shot mode
+        newAct.backgroundActivity->wait(seconds);
+        qCDebug(lcButeoMsyncd) << "BackgroundSync::set() Rescheduling one-shot for" << aProfName
+                               << "in" << seconds << "seconds.";
+        return true;
     }
 
     BActivityStruct &newAct = iScheduledSyncs[aProfName];
     newAct.backgroundActivity = new BackgroundActivity(this);
     newAct.id = newAct.backgroundActivity->id();
+    newAct.frequency = BackgroundActivity::Range; // one-shot mode
     connect(newAct.backgroundActivity, SIGNAL(running()), this, SLOT(onBackgroundSyncStarted()));
 
-    if (seconds / 60 >  MAX_FREQUENCY) {
-        newAct.frequency = BackgroundActivity::Range; // 0
-        newAct.backgroundActivity->wait(seconds);
-        qCDebug(lcButeoMsyncd) << "BackgroundSync::set() profile name =" << aProfName
-                               << "without a valid frequency, waiting for"
-                               << seconds << "seconds.";
-    } else {
-        newAct.frequency = frequencyFromSeconds(seconds);
-        newAct.backgroundActivity->setWakeupFrequency(newAct.frequency);
-        newAct.backgroundActivity->wait();
-        qCDebug(lcButeoMsyncd) << "BackgroundSync::set() profile name =" << aProfName
-                               << "with frequency " << (seconds / 60) << "minutes, waiting.";
-    }
+    newAct.backgroundActivity->wait(seconds);
+    qCDebug(lcButeoMsyncd) << "BackgroundSync::set() profile name =" << aProfName
+                           << "one-shot wait for" << seconds << "seconds.";
     return true;
 }
 
