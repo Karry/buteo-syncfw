@@ -52,6 +52,10 @@ const QString ATTR_MINOR_CODE("minorcode");
 const QString ATTR_ENABLED("enabled");
 const QString ATTR_SYNC_CONFIGURE("syncconfiguredtime");
 const QString ATTR_EXTERNAL_SYNC("externalsync");
+// Optional per-schedule acceptance window (in seconds) for explicit-time wakeups.
+// Allows widening the default tolerance to accommodate imprecise platform wakeup
+// timers (e.g. nemo-keepalive BackgroundActivity frequency buckets).
+const QString ATTR_WAKEUP_TOLERANCE("wakeuptolerance");
 
 const QString TAG_FIELD("field");
 const QString TAG_PROFILE("profile");

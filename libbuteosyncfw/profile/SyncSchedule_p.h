@@ -120,6 +120,10 @@ public:
 
     //! Indicates if External Rush Hour schedule is Enabled
     bool iExternalRushEnabled;
+
+    //! Optional per-schedule wakeup tolerance in seconds.
+    //! 0 means "use default" (handled in SyncSchedule::isSyncScheduled()).
+    unsigned int iWakeupTolerance = 0;
 };
 
 }

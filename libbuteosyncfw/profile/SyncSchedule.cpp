@@ -59,6 +59,7 @@ SyncSchedulePrivate::SyncSchedulePrivate(const SyncSchedulePrivate &aSource)
     , iRushEnabled(aSource.iRushEnabled)
     , iExternalRushEnabled(aSource.iExternalRushEnabled)
 {
+    iWakeupTolerance = aSource.iWakeupTolerance;
 }
 
 SyncSchedule::SyncSchedule()
@@ -79,6 +80,11 @@ SyncSchedule::SyncSchedule(const QDomElement &aRoot)
     d_ptr->iEnabled = (aRoot.attribute(ATTR_ENABLED) == BOOLEAN_TRUE);
     d_ptr->iDays = d_ptr->parseDays(aRoot.attribute(ATTR_DAYS));
     d_ptr->iScheduleConfiguredTime = QDateTime::fromString(aRoot.attribute(ATTR_SYNC_CONFIGURE), Qt::ISODate);
+
+    // Optional per-schedule wakeup tolerance; 0 (or missing) means "use default".
+    if (aRoot.hasAttribute(ATTR_WAKEUP_TOLERANCE)) {
+        d_ptr->iWakeupTolerance = aRoot.attribute(ATTR_WAKEUP_TOLERANCE).toUInt();
+    }
 
     QDomElement rush = aRoot.firstChildElement(TAG_RUSH);
 
@@ -124,7 +130,8 @@ bool SyncSchedule::operator==(const SyncSchedule &aRhs) const
            && (d_ptr->iInterval == aRhs.d_ptr->iInterval)
            && (d_ptr->iEnabled == aRhs.d_ptr->iEnabled)
            && (d_ptr->iRushEnabled == aRhs.d_ptr->iRushEnabled)
-           && (d_ptr->iExternalRushEnabled == aRhs.d_ptr->iExternalRushEnabled);
+           && (d_ptr->iExternalRushEnabled == aRhs.d_ptr->iExternalRushEnabled)
+           && (d_ptr->iWakeupTolerance == aRhs.d_ptr->iWakeupTolerance);
 }
 
 QDomElement SyncSchedule::toXml(QDomDocument &aDoc) const
@@ -136,6 +143,11 @@ QDomElement SyncSchedule::toXml(QDomDocument &aDoc) const
     root.setAttribute(ATTR_INTERVAL, QString::number(d_ptr->iInterval));
     root.setAttribute(ATTR_DAYS, d_ptr->createDays(d_ptr->iDays));
     root.setAttribute(ATTR_SYNC_CONFIGURE, d_ptr->iScheduleConfiguredTime.toString(Qt::ISODate));
+
+    // Only serialize wakeup tolerance when explicitly set, to keep XML output backward-compatible.
+    if (d_ptr->iWakeupTolerance > 0) {
+        root.setAttribute(ATTR_WAKEUP_TOLERANCE, QString::number(d_ptr->iWakeupTolerance));
+    }
 
     QDomElement rush = aDoc.createElement(TAG_RUSH);
     rush.setAttribute(ATTR_ENABLED, d_ptr->iRushEnabled ? BOOLEAN_TRUE :
@@ -268,6 +280,16 @@ unsigned SyncSchedule::rushInterval() const
 void SyncSchedule::setRushInterval(unsigned aInterval)
 {
     d_ptr->iRushInterval = aInterval;
+}
+
+unsigned int SyncSchedule::wakeupTolerance() const
+{
+    return d_ptr->iWakeupTolerance;
+}
+
+void SyncSchedule::setWakeupTolerance(unsigned int aSeconds)
+{
+    d_ptr->iWakeupTolerance = aSeconds;
 }
 
 bool SyncSchedule::inExternalSyncRushPeriod(const QDateTime &aDateTime) const
@@ -501,7 +523,13 @@ bool SyncSchedule::isSyncScheduled(const QDateTime &aActualDateTime, const QDate
     if (d_ptr->iTime.isValid() && d_ptr->iDays != SyncSchedule::NoDays) {
         // Accept wakeups close to the schedule for today, and also for yesterday's schedule
         // when the timer crosses midnight.
-        static const qint64 toleranceSecs = 5 * 60;
+        // Default: 5 minutes (historical behavior). Profiles can opt into a wider window
+        // via SyncSchedule::setWakeupTolerance() / the "wakeuptolerance" XML attribute,
+        // which is useful for schedules running on imprecise platform wakeup buckets.
+        static const qint64 defaultToleranceSecs = 5 * 60;
+        const qint64 toleranceSecs = d_ptr->iWakeupTolerance > 0
+                                     ? static_cast<qint64>(d_ptr->iWakeupTolerance)
+                                     : defaultToleranceSecs;
         qint64 minDiffSecs = LLONG_MAX;
 
         const QDate today = aActualDateTime.date();

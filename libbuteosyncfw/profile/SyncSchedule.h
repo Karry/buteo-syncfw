@@ -285,6 +285,23 @@ public:
      */
     bool isSyncScheduled(const QDateTime &aActualDateTime, const QDateTime &aPreviousSyncTime = QDateTime()) const;
 
+    /*! \brief Gets per-schedule wakeup tolerance window in seconds.
+     *
+     * Used by isSyncScheduled() for explicit-time schedules to accept platform
+     * wakeups that drift from the scheduled time. A value of 0 means "use the
+     * built-in default tolerance".
+     *
+     * \return Tolerance in seconds, or 0 if not explicitly set.
+     */
+    unsigned int wakeupTolerance() const;
+
+    /*! \brief Sets per-schedule wakeup tolerance window in seconds.
+     *
+     * Set to 0 to fall back to the built-in default tolerance.
+     * \param aSeconds Tolerance in seconds.
+     */
+    void setWakeupTolerance(unsigned int aSeconds);
+
 private:
     SyncSchedulePrivate *d_ptr;
 

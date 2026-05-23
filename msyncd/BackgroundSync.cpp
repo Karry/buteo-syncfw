@@ -107,6 +107,10 @@ bool BackgroundSync::set(const QString &aProfName, int seconds)
                                        << "with frequency" << (seconds / 60) << "minutes, waiting.";
                 return true;
             } else {
+                // If the activity's state was already Waiting, the state doesn't change,
+                // nothing happens and the existing background activity keeps running until
+                // the previously set time expires, so we have to stop it before re-arming.
+                newAct.backgroundActivity->stop();
                 newAct.backgroundActivity->wait();
                 qCDebug(lcButeoMsyncd) << "BackgroundSync::set() Frequency unchanged for" << aProfName << ", waiting.";
                 return true; //returning 'true' - no immediate sync request to be sent.
