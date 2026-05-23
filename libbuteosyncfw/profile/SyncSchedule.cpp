@@ -523,13 +523,31 @@ bool SyncSchedule::isSyncScheduled(const QDateTime &aActualDateTime, const QDate
     if (d_ptr->iTime.isValid() && d_ptr->iDays != SyncSchedule::NoDays) {
         // Accept wakeups close to the schedule for today, and also for yesterday's schedule
         // when the timer crosses midnight.
-        // Default: 5 minutes (historical behavior). Profiles can opt into a wider window
-        // via SyncSchedule::setWakeupTolerance() / the "wakeuptolerance" XML attribute,
-        // which is useful for schedules running on imprecise platform wakeup buckets.
-        static const qint64 defaultToleranceSecs = 5 * 60;
+        //
+        // The default tolerance depends on the schedule shape:
+        //  * Explicit-time-only schedules (days + time, interval == 0) are routed
+        //    through nemo-keepalive's frequency buckets (up to TwentyFourHours).
+        //    Those buckets fire on system-aligned IPHB slots and can easily drift
+        //    by tens of minutes from the configured time, so a strict 5-minute
+        //    window causes the wakeup to be rejected and the schedule to stall
+        //    until the next manual trigger. Use a 2-hour window for this shape.
+        //  * All other schedules (interval-based, rush, ...) keep the historical
+        //    5-minute window because their wakeups are accurate.
+        //
+        // Profiles can always override this via SyncSchedule::setWakeupTolerance()
+        // / the "wakeuptolerance" XML attribute.
+        static const qint64 defaultIntervalToleranceSecs = 5 * 60;
+        static const qint64 defaultExplicitTimeToleranceSecs = 2 * 60 * 60;
+        const bool isExplicitTimeOnly = (d_ptr->iInterval == 0);
+        const qint64 defaultToleranceSecs = isExplicitTimeOnly
+                                            ? defaultExplicitTimeToleranceSecs
+                                            : defaultIntervalToleranceSecs;
         const qint64 toleranceSecs = d_ptr->iWakeupTolerance > 0
                                      ? static_cast<qint64>(d_ptr->iWakeupTolerance)
                                      : defaultToleranceSecs;
+        qCDebug(lcButeoCore) << "Scheduled check: effective tolerance" << toleranceSecs
+                             << "secs (configured=" << d_ptr->iWakeupTolerance
+                             << ", explicitTimeOnly=" << isExplicitTimeOnly << ")";
         qint64 minDiffSecs = LLONG_MAX;
 
         const QDate today = aActualDateTime.date();
