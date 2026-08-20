@@ -553,10 +553,7 @@ bool SyncSchedule::isSyncScheduled(const QDateTime &aActualDateTime, const QDate
         const QDate aActualDate = aActualDateTime.date();
         const bool actualDateMatch = SyncSchedulePrivate::daysMatch(d_ptr->iDays, aActualDate.dayOfWeek());
         if (actualDateMatch) {
-            qint64 diff = QDateTime(aActualDate, d_ptr->iTime).secsTo(aActualDateTime);
-            if (diff < 0) {
-                diff = -diff;
-            }
+            qint64 diff = qAbs(QDateTime(aActualDate, d_ptr->iTime).secsTo(aActualDateTime));
             minDiffSecs = qMin(minDiffSecs, diff);
             qCDebug(lcButeoCore) << "Scheduled check (actual): scheduled=" << QDateTime(aActualDate, d_ptr->iTime)
                                  << "actual=" << aActualDateTime << "diffSecs=" << diff;
