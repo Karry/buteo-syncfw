@@ -521,7 +521,7 @@ bool SyncSchedule::isSyncScheduled(const QDateTime &aActualDateTime, const QDate
 
     // Simple case, aDateTime is the defined sync time.
     if (d_ptr->iTime.isValid() && d_ptr->iDays != SyncSchedule::NoDays) {
-        // Accept wakeups close to the schedule for today, and also for yesterday's schedule
+        // Accept wakeups close to the schedule for aActualDate (today), and also for previousDay (yesterday) schedule
         // when the timer crosses midnight.
         //
         // The default tolerance depends on the schedule shape:
@@ -550,34 +550,34 @@ bool SyncSchedule::isSyncScheduled(const QDateTime &aActualDateTime, const QDate
                              << ", explicitTimeOnly=" << isExplicitTimeOnly << ")";
         qint64 minDiffSecs = LLONG_MAX;
 
-        const QDate today = aActualDateTime.date();
-        const bool todayMatch = SyncSchedulePrivate::daysMatch(d_ptr->iDays, today.dayOfWeek());
-        if (todayMatch) {
-            qint64 diff = QDateTime(today, d_ptr->iTime).secsTo(aActualDateTime);
+        const QDate aActualDate = aActualDateTime.date();
+        const bool actualDateMatch = SyncSchedulePrivate::daysMatch(d_ptr->iDays, aActualDate.dayOfWeek());
+        if (actualDateMatch) {
+            qint64 diff = QDateTime(aActualDate, d_ptr->iTime).secsTo(aActualDateTime);
             if (diff < 0) {
                 diff = -diff;
             }
             minDiffSecs = qMin(minDiffSecs, diff);
-            qCDebug(lcButeoCore) << "Scheduled check (today): scheduled=" << QDateTime(today, d_ptr->iTime)
+            qCDebug(lcButeoCore) << "Scheduled check (actual): scheduled=" << QDateTime(aActualDate, d_ptr->iTime)
                                  << "actual=" << aActualDateTime << "diffSecs=" << diff;
         } else {
-            qCDebug(lcButeoCore) << "Scheduled check (today): day mismatch, scheduledDays=" << d_ptr->iDays
-                                 << "actualDayOfWeek=" << today.dayOfWeek();
+            qCDebug(lcButeoCore) << "Scheduled check (actual): day mismatch, scheduledDays=" << d_ptr->iDays
+                                 << "actualDayOfWeek=" << aActualDate.dayOfWeek();
         }
 
-        const QDate yesterday = today.addDays(-1);
-        const bool yesterdayMatch = SyncSchedulePrivate::daysMatch(d_ptr->iDays, yesterday.dayOfWeek());
-        if (yesterdayMatch) {
-            qint64 diff = QDateTime(yesterday, d_ptr->iTime).secsTo(aActualDateTime);
+        const QDate previousDay = aActualDate.addDays(-1);
+        const bool previousDayMatch = SyncSchedulePrivate::daysMatch(d_ptr->iDays, previousDay.dayOfWeek());
+        if (previousDayMatch) {
+            qint64 diff = QDateTime(previousDay, d_ptr->iTime).secsTo(aActualDateTime);
             if (diff < 0) {
                 diff = -diff;
             }
             minDiffSecs = qMin(minDiffSecs, diff);
-            qCDebug(lcButeoCore) << "Scheduled check (yesterday): scheduled=" << QDateTime(yesterday, d_ptr->iTime)
+            qCDebug(lcButeoCore) << "Scheduled check (previous): scheduled=" << QDateTime(previousDay, d_ptr->iTime)
                                  << "actual=" << aActualDateTime << "diffSecs=" << diff;
         } else {
-            qCDebug(lcButeoCore) << "Scheduled check (yesterday): day mismatch, scheduledDays=" << d_ptr->iDays
-                                 << "yesterdayDayOfWeek=" << yesterday.dayOfWeek();
+            qCDebug(lcButeoCore) << "Scheduled check (previous): day mismatch, scheduledDays=" << d_ptr->iDays
+                                 << "previousDayOfWeek=" << previousDay.dayOfWeek();
         }
 
         if (minDiffSecs == LLONG_MAX) {
